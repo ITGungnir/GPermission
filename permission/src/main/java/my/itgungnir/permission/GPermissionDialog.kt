@@ -10,7 +10,6 @@ import android.view.ViewGroup
 import android.view.Window
 import androidx.fragment.app.DialogFragment
 import kotlinx.android.synthetic.main.dialog_g_permission.*
-import org.jetbrains.anko.backgroundDrawable
 
 class GPermissionDialog private constructor() : DialogFragment() {
 
@@ -36,7 +35,7 @@ class GPermissionDialog private constructor() : DialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        view.backgroundDrawable = GradientDrawable().apply {
+        view.background = GradientDrawable().apply {
             setColor(Color.WHITE)
             cornerRadius = 10F
         }

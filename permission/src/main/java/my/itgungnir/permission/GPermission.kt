@@ -6,22 +6,30 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
-import com.tbruyelle.rxpermissions2.RxPermissions
+import androidx.lifecycle.ViewModelStoreOwner
 
 class GPermission private constructor() {
 
     private lateinit var context: FragmentActivity
 
-    private lateinit var permissionUtil: RxPermissions
+    private lateinit var permissionUtil: GPermissionProxy
 
     private var grantedCallback: (() -> Unit)? = null
     private var deniedCallback: (() -> Unit)? = null
 
     companion object {
-        fun with(activity: FragmentActivity) = GPermission().apply {
-            context = activity
-            permissionUtil = RxPermissions(activity)
+        fun with(component: ViewModelStoreOwner) = GPermission().apply {
+            permissionUtil = GPermissionProxy.with(component)
+            context = when (component) {
+                is FragmentActivity ->
+                    component
+                is Fragment ->
+                    component.activity ?: throw IllegalArgumentException("Fragment didn't attach to any Activity.")
+                else ->
+                    throw IllegalArgumentException("GPermission requested from wrong component.")
+            }
         }
     }
 
@@ -47,17 +55,19 @@ class GPermission private constructor() {
             }
     }
 
-    private fun lackOnes(vararg permissions: Pair<String, String>): List<String> {
-        return permissions.filter { granted(permission = it.first) }
+    fun allGranted(vararg permissions: String) = permissions.all { granted(it) }
+
+    private fun lackedOnes(vararg permissions: Pair<String, String>): List<String> {
+        return permissions.filter { !granted(permission = it.first) }
             .map { it.second }
     }
 
     private fun granted(permission: String): Boolean =
-        ContextCompat.checkSelfPermission(context.applicationContext, permission) == PackageManager.PERMISSION_DENIED
+        ContextCompat.checkSelfPermission(context.applicationContext, permission) == PackageManager.PERMISSION_GRANTED
 
     private fun requestRepeatedly(vararg permissions: Pair<String, String>) {
         GPermissionDialog.Builder()
-            .message("请允许系统获取${lackOnes(*permissions)}权限")
+            .message("请允许系统获取${lackedOnes(*permissions)}权限")
             .onConfirm { request(*permissions) }
             .onCancel { deniedCallback?.invoke() }
             .create()
@@ -66,7 +76,7 @@ class GPermission private constructor() {
 
     private fun requestManually(vararg permissions: Pair<String, String>) {
         GPermissionDialog.Builder()
-            .message("由于系统无法获取${lackOnes(*permissions)}权限，不能正常运行，请开启权限后再使用！")
+            .message("由于系统无法获取${lackedOnes(*permissions)}权限，不能正常运行，请开启权限后再使用！")
             .onConfirm { toSystemConfigPage() }
             .onCancel { deniedCallback?.invoke() }
             .create()

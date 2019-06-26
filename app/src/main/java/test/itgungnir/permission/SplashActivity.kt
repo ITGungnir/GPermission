@@ -19,7 +19,9 @@ class SplashActivity : AppCompatActivity() {
             .onDenied { finish() }
             .request(
                 Manifest.permission.WRITE_EXTERNAL_STORAGE to "文件读写",
-                Manifest.permission.READ_PHONE_STATE to "获取手机状态"
+                Manifest.permission.READ_PHONE_STATE to "获取手机状态",
+                Manifest.permission.CAMERA to "相机",
+                Manifest.permission.RECORD_AUDIO to "麦克风录音"
             )
     }
 }
