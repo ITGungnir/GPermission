@@ -33,6 +33,7 @@ class GPermissionFragment private constructor() : Fragment() {
         }
         for (i in 0 until permissions.size) {
             val subject = subjects[permissions[i]] ?: return
+            // 将已授权或已禁用的权限删除
             subjects.remove(permissions[i])
             val granted = grantResults[i] == PackageManager.PERMISSION_GRANTED
             subject.onNext(

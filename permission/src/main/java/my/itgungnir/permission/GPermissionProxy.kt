@@ -25,6 +25,11 @@ class GPermissionProxy {
         }
     }
 
+    /**
+     * 请求权限
+     *
+     * compose()与XXXTransformer结合使用，可以将两个不同的操作写入一个链式操作中，相当于封装了代码
+     */
     fun requestEachCombined(vararg permissions: String): Observable<Permission> =
         Observable.just(TRIGGER).compose(ensureEachCombined(*permissions))
 
@@ -54,9 +59,10 @@ class GPermissionProxy {
     }
 
     private fun oneOf(trigger: Observable<*>?, pending: Observable<*>): Observable<*> {
-        return if (trigger == null) {
-            Observable.just<Any>(TRIGGER)
-        } else Observable.merge(trigger, pending)
+        return when (null == trigger) {
+            true -> Observable.just(TRIGGER)
+            else -> Observable.merge(trigger, pending)
+        }
     }
 
     private fun pending(vararg permissions: String): Observable<*> {
@@ -81,7 +87,7 @@ class GPermissionProxy {
                 continue
             }
             var subject = fragment.getPermissionSubject(permission)
-            if (subject == null) {
+            if (null == subject) {
                 unrequestedPermissions.add(permission)
                 subject = PublishSubject.create()
                 fragment.setPermissionSubject(permission, subject)

@@ -66,21 +66,24 @@ class GPermission private constructor() {
         ContextCompat.checkSelfPermission(context.applicationContext, permission) == PackageManager.PERMISSION_GRANTED
 
     private fun requestRepeatedly(vararg permissions: Pair<String, String>) {
-        GPermissionDialog.Builder()
-            .message("请允许系统获取${lackedOnes(*permissions)}权限")
-            .onConfirm { request(*permissions) }
-            .onCancel { deniedCallback?.invoke() }
-            .create()
-            .show(context.supportFragmentManager, GPermissionDialog::class.java.name)
+        // 此处必须使用commitAllowingStateLoss()方法，否则崩溃报错：Can not perform this action after onSaveInstanceState
+        context.supportFragmentManager.beginTransaction()
+            .add(GPermissionDialog.Builder()
+                .message("请允许系统获取${lackedOnes(*permissions)}权限")
+                .onConfirm { request(*permissions) }
+                .onCancel { deniedCallback?.invoke() }
+                .create(), GPermissionDialog::class.java.name)
+            .commitAllowingStateLoss()
     }
 
     private fun requestManually(vararg permissions: Pair<String, String>) {
-        GPermissionDialog.Builder()
-            .message("由于系统无法获取${lackedOnes(*permissions)}权限，不能正常运行，请开启权限后再使用！")
-            .onConfirm { toSystemConfigPage() }
-            .onCancel { deniedCallback?.invoke() }
-            .create()
-            .show(context.supportFragmentManager, GPermissionDialog::class.java.name)
+        context.supportFragmentManager.beginTransaction()
+            .add(GPermissionDialog.Builder()
+                .message("由于系统无法获取${lackedOnes(*permissions)}权限，不能正常运行，请开启权限后再使用！")
+                .onConfirm { toSystemConfigPage() }
+                .onCancel { deniedCallback?.invoke() }
+                .create(), GPermissionDialog::class.java.name)
+            .commitAllowingStateLoss()
     }
 
     private fun toSystemConfigPage() {
