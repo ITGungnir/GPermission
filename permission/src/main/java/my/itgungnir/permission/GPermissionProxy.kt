@@ -9,13 +9,18 @@ import io.reactivex.ObservableTransformer
 import io.reactivex.subjects.PublishSubject
 import java.util.*
 
-class GPermissionProxy {
+class GPermissionProxy private constructor() {
 
     private lateinit var fragment: GPermissionFragment
 
-    private val TRIGGER = Unit
+    private val trigger = Unit
 
     companion object {
+        /**
+         * ViewModelStoreOwner is a common base class for FragmentActivity and Fragment.
+         * Invoke this method to initialize GPermission and GPermissionProxy object, meanwhile,
+         * bind ViewModelStoreOwner to GPermission's context variable.
+         */
         fun with(component: ViewModelStoreOwner) = GPermissionProxy().apply {
             fragment = when (component) {
                 is FragmentActivity -> GPermissionFragment.getInstance(component.supportFragmentManager)
@@ -26,16 +31,14 @@ class GPermissionProxy {
     }
 
     /**
-     * 请求权限
-     *
-     * compose()与XXXTransformer结合使用，可以将两个不同的操作写入一个链式操作中，相当于封装了代码
+     * Request permissions.
      */
     fun requestEachCombined(vararg permissions: String): Observable<Permission> =
-        Observable.just(TRIGGER).compose(ensureEachCombined(*permissions))
+        Observable.just(trigger).compose(ensureEachCombined(*permissions))
 
     private fun <T> ensureEachCombined(vararg permissions: String): ObservableTransformer<T, Permission> {
-        return ObservableTransformer { o ->
-            request(o, *permissions)
+        return ObservableTransformer {
+            request(*permissions)
                 .buffer(permissions.size)
                 .flatMap { permissions ->
                     if (permissions.isEmpty()) {
@@ -50,28 +53,11 @@ class GPermissionProxy {
         }
     }
 
-    private fun request(trigger: Observable<*>, vararg permissions: String): Observable<Permission> {
+    private fun request(vararg permissions: String): Observable<Permission> {
         if (permissions.isEmpty()) {
-            throw IllegalArgumentException("RxPermissions.request/requestEach requires at least one input permission")
+            throw IllegalArgumentException("GPermissions.requestEachCombined requires at least one input permission")
         }
-        return oneOf(trigger, pending(*permissions))
-            .flatMap { requestImplementation(*permissions) }
-    }
-
-    private fun oneOf(trigger: Observable<*>?, pending: Observable<*>): Observable<*> {
-        return when (null == trigger) {
-            true -> Observable.just(TRIGGER)
-            else -> Observable.merge(trigger, pending)
-        }
-    }
-
-    private fun pending(vararg permissions: String): Observable<*> {
-        for (p in permissions) {
-            if (!fragment.isPermissionSubjectExist(p)) {
-                return Observable.empty<Any>()
-            }
-        }
-        return Observable.just<Any>(TRIGGER)
+        return requestImplementation(*permissions)
     }
 
     private fun requestImplementation(vararg permissions: String): Observable<Permission> {
@@ -79,11 +65,27 @@ class GPermissionProxy {
         val unrequestedPermissions = ArrayList<String>()
         for (permission in permissions) {
             if (isGranted(permission)) {
-                list.add(Observable.just(Permission(permission, true, false)))
+                list.add(
+                    Observable.just(
+                        Permission(
+                            name = permission,
+                            granted = true,
+                            shouldShowRequestPermissionRationale = false
+                        )
+                    )
+                )
                 continue
             }
             if (isRevoked(permission)) {
-                list.add(Observable.just(Permission(permission, false, false)))
+                list.add(
+                    Observable.just(
+                        Permission(
+                            name = permission,
+                            granted = false,
+                            shouldShowRequestPermissionRationale = false
+                        )
+                    )
+                )
                 continue
             }
             var subject = fragment.getPermissionSubject(permission)

@@ -65,8 +65,15 @@ class GPermission private constructor() {
     private fun granted(permission: String): Boolean =
         ContextCompat.checkSelfPermission(context.applicationContext, permission) == PackageManager.PERMISSION_GRANTED
 
+    /**
+     * Repeatedly pop the permission-request dialogs.
+     * When the user denied a permission without checking the "Don't show again" checkbox,
+     * then this method will be invoked until the user finally grants all the permissions,
+     * or checks all the "Don't show again" checkbox.
+     */
     private fun requestRepeatedly(vararg permissions: Pair<String, String>) {
-        // 此处必须使用commitAllowingStateLoss()方法，否则崩溃报错：Can not perform this action after onSaveInstanceState
+        // If we don't invoke commitAllowingStateLoss() method, exceptions will occur noted:
+        // Can not perform this action after onSaveInstanceState
         context.supportFragmentManager.beginTransaction()
             .add(GPermissionDialog.Builder()
                 .message("请允许系统获取${lackedOnes(*permissions)}权限")
@@ -76,6 +83,12 @@ class GPermission private constructor() {
             .commitAllowingStateLoss()
     }
 
+    /**
+     * This method is invoked when the user didn't grant permission for all the requests,
+     * and for those not granted, the user checked the "Don't show again" checkbox.
+     * A dialog will pop to ask the user to navigate to system setting page to manually grant
+     * permissions for this App.
+     */
     private fun requestManually(vararg permissions: Pair<String, String>) {
         context.supportFragmentManager.beginTransaction()
             .add(GPermissionDialog.Builder()

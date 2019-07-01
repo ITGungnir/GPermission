@@ -57,9 +57,6 @@ class GPermissionFragment private constructor() : Fragment() {
         subjects[permission] = subject
     }
 
-    fun isPermissionSubjectExist(permission: String) =
-        subjects.containsKey(permission)
-
     @TargetApi(Build.VERSION_CODES.M)
     fun isPermissionGranted(permission: String): Boolean =
         activity?.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
