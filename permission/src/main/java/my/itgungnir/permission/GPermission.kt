@@ -12,14 +12,16 @@ import androidx.lifecycle.ViewModelStoreOwner
 
 class GPermission private constructor() {
 
-    private lateinit var context: FragmentActivity
-
     private lateinit var permissionUtil: GPermissionProxy
 
+    private var showDialogAtPermissionRejection: Boolean = false
     private var grantedCallback: (() -> Unit)? = null
     private var deniedCallback: (() -> Unit)? = null
 
     companion object {
+
+        private lateinit var context: FragmentActivity
+
         fun with(component: ViewModelStoreOwner) = GPermission().apply {
             permissionUtil = GPermissionProxy.with(component)
             context = when (component) {
@@ -31,39 +33,50 @@ class GPermission private constructor() {
                     throw IllegalArgumentException("GPermission requested from wrong component.")
             }
         }
+
+        fun allGranted(vararg permissions: String) = permissions.all { granted(it) }
+
+        private fun granted(permission: String): Boolean =
+            ContextCompat.checkSelfPermission(context.applicationContext, permission) ==
+                    PackageManager.PERMISSION_GRANTED
     }
 
-    fun onGranted(block: () -> Unit): GPermission {
-        this.grantedCallback = block
-        return this
+    /**
+     * If this method is invoked, dialogs will pop when not all permissions are granted by user.
+     * Dialogs won't pop if this method isn't invoked.
+     */
+    fun showDialogAtPermissionRejection() = apply {
+        showDialogAtPermissionRejection = true
     }
 
-    fun onDenied(block: () -> Unit): GPermission {
-        this.deniedCallback = block
-        return this
+    fun onGranted(block: () -> Unit) = apply {
+        grantedCallback = block
+    }
+
+    fun onDenied(block: () -> Unit) = apply {
+        deniedCallback = block
     }
 
     @SuppressLint("CheckResult")
     fun request(vararg permissions: Pair<String, String>) {
+        if (GPermissionDialog.isShowing) {
+            return
+        }
         permissionUtil.requestEachCombined(*(permissions.map { it.first }.toTypedArray()))
             .subscribe {
                 when {
                     it.granted -> grantedCallback?.invoke()
+                    !showDialogAtPermissionRejection -> deniedCallback?.invoke()
                     it.shouldShowRequestPermissionRationale -> requestRepeatedly(*permissions)
                     else -> requestManually(*permissions)
                 }
             }
     }
 
-    fun allGranted(vararg permissions: String) = permissions.all { granted(it) }
-
     private fun lackedOnes(vararg permissions: Pair<String, String>): List<String> {
         return permissions.filter { !granted(permission = it.first) }
             .map { it.second }
     }
-
-    private fun granted(permission: String): Boolean =
-        ContextCompat.checkSelfPermission(context.applicationContext, permission) == PackageManager.PERMISSION_GRANTED
 
     /**
      * Repeatedly pop the permission-request dialogs.
@@ -72,15 +85,12 @@ class GPermission private constructor() {
      * or checks all the "Don't show again" checkbox.
      */
     private fun requestRepeatedly(vararg permissions: Pair<String, String>) {
-        // If we don't invoke commitAllowingStateLoss() method, exceptions will occur noted:
-        // Can not perform this action after onSaveInstanceState
-        context.supportFragmentManager.beginTransaction()
-            .add(GPermissionDialog.Builder()
-                .message("请允许系统获取${lackedOnes(*permissions)}权限")
-                .onConfirm { request(*permissions) }
-                .onCancel { deniedCallback?.invoke() }
-                .create(), GPermissionDialog::class.java.name)
-            .commitAllowingStateLoss()
+        GPermissionDialog.Builder()
+            .message("请允许系统获取${lackedOnes(*permissions)}权限")
+            .onConfirm { request(*permissions) }
+            .onCancel { deniedCallback?.invoke() }
+            .create()
+            .show(context.supportFragmentManager, GPermissionDialog::class.java.name)
     }
 
     /**
@@ -90,13 +100,12 @@ class GPermission private constructor() {
      * permissions for this App.
      */
     private fun requestManually(vararg permissions: Pair<String, String>) {
-        context.supportFragmentManager.beginTransaction()
-            .add(GPermissionDialog.Builder()
-                .message("由于系统无法获取${lackedOnes(*permissions)}权限，不能正常运行，请开启权限后再使用！")
-                .onConfirm { toSystemConfigPage() }
-                .onCancel { deniedCallback?.invoke() }
-                .create(), GPermissionDialog::class.java.name)
-            .commitAllowingStateLoss()
+        GPermissionDialog.Builder()
+            .message("由于系统无法获取${lackedOnes(*permissions)}权限，不能正常运行，请开启权限后再使用！")
+            .onConfirm { toSystemConfigPage() }
+            .onCancel { deniedCallback?.invoke() }
+            .create()
+            .show(context.supportFragmentManager, GPermissionDialog::class.java.name)
     }
 
     private fun toSystemConfigPage() {

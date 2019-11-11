@@ -8,7 +8,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import io.reactivex.subjects.PublishSubject
 
-class GPermissionFragment private constructor() : Fragment() {
+class GPermissionFragment : Fragment() {
 
     private val subjects = mutableMapOf<String, PublishSubject<Permission>>()
 
@@ -31,7 +31,7 @@ class GPermissionFragment private constructor() : Fragment() {
         if (PERMISSION_REQUEST_CODE != requestCode) {
             return
         }
-        for (i in 0 until permissions.size) {
+        for (i in permissions.indices) {
             val subject = subjects[permissions[i]] ?: return
             // 将已授权或已禁用的权限删除
             subjects.remove(permissions[i])

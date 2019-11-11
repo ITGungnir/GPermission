@@ -18,7 +18,7 @@ class GPermissionProxy private constructor() {
     companion object {
         /**
          * ViewModelStoreOwner is a common base class for FragmentActivity and Fragment.
-         * Invoke this method to initialize GPermission and GPermissionProxy object, meanwhile,
+         * Invoke this method to initialize GPermissionProxy and GPermissionFragment object, meanwhile,
          * bind ViewModelStoreOwner to GPermission's context variable.
          */
         fun with(component: ViewModelStoreOwner) = GPermissionProxy().apply {
@@ -54,9 +54,7 @@ class GPermissionProxy private constructor() {
     }
 
     private fun request(vararg permissions: String): Observable<Permission> {
-        if (permissions.isEmpty()) {
-            throw IllegalArgumentException("GPermissions.requestEachCombined requires at least one input permission")
-        }
+        require(permissions.isNotEmpty()) { "GPermissions.requestEachCombined requires at least one permission" }
         return requestImplementation(*permissions)
     }
 

@@ -1,14 +1,14 @@
 package my.itgungnir.permission
 
+import android.app.Dialog
+import android.content.DialogInterface
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
-import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import android.view.Window
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
+import androidx.fragment.app.FragmentManager
 import kotlinx.android.synthetic.main.dialog_g_permission.*
 
 class GPermissionDialog private constructor() : DialogFragment() {
@@ -16,41 +16,63 @@ class GPermissionDialog private constructor() : DialogFragment() {
     private lateinit var param: SimpleDialogParam
 
     companion object {
+        /**
+         * Mark weather one instance of this dialog is being showed.
+         */
+        var isShowing = false
+
+        /**
+         * Create new instance of this fragment.
+         */
         private fun newInstance(param: SimpleDialogParam) = GPermissionDialog().apply {
             this.param = param
         }
     }
 
-    override fun onActivityCreated(savedInstanceState: Bundle?) {
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        return AlertDialog.Builder(activity!!)
+            .setView(R.layout.dialog_g_permission)
+            .setCancelable(false)
+            .create()
+    }
+
+    override fun setupDialog(dialog: Dialog, style: Int) {
+        super.setupDialog(dialog, style)
         dialog.window?.apply {
             requestFeature(Window.FEATURE_NO_TITLE)
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         }
-        super.onActivityCreated(savedInstanceState)
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
-        inflater.inflate(R.layout.dialog_g_permission, container, false)
+    override fun onStart() {
+        super.onStart()
+        dialog?.apply {
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+            message.text = param.message
 
-        view.background = GradientDrawable().apply {
-            setColor(Color.WHITE)
-            cornerRadius = 10F
+            confirm.setOnClickListener {
+                dismissAllowingStateLoss()
+                param.confirmCallback?.invoke()
+            }
+
+            cancel.setOnClickListener {
+                dismissAllowingStateLoss()
+                param.cancelCallback?.invoke()
+            }
         }
+    }
 
-        message.text = param.message
+    override fun onDismiss(dialog: DialogInterface) {
+        isShowing = false
+        super.onDismiss(dialog)
+    }
 
-        confirm.setOnClickListener {
-            param.confirmCallback?.invoke()
-            dismissAllowingStateLoss()
+    override fun show(manager: FragmentManager, tag: String?) {
+        if (isShowing) {
+            return
         }
-
-        cancel.setOnClickListener {
-            param.cancelCallback?.invoke()
-            dismissAllowingStateLoss()
-        }
+        isShowing = true
+        super.show(manager, tag)
     }
 
     data class SimpleDialogParam(

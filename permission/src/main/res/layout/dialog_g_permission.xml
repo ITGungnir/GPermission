@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@drawable/shape_dialog_bg"
     android:orientation="vertical"
     tools:ignore="SpUsage,HardcodedText">
 
@@ -14,6 +15,7 @@
         android:gravity="center"
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
+        android:textColor="@android:color/black"
         android:textSize="14sp" />
 
     <View
@@ -41,6 +43,7 @@
             android:background="?android:selectableItemBackground"
             android:gravity="center"
             android:text="确定"
+            android:textColor="#2A83E1"
             android:textSize="14sp"
             android:textStyle="bold" />
 
@@ -52,6 +55,7 @@
             android:background="?android:selectableItemBackground"
             android:gravity="center"
             android:text="取消"
+            android:textColor="#444444"
             android:textSize="14sp" />
 
     </RelativeLayout>
