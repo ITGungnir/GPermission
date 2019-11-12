@@ -42,6 +42,7 @@ dependencies {
 **【重要！！！】** 第二步，设置将要进行权限请求的`Activity`的`configChanges`或`screenOrientation`属性：
 ```xml
 <application
+    android:name=".App"
     android:allowBackup="true"
     android:icon="@mipmap/ic_launcher"
     android:label="@string/app_name"
