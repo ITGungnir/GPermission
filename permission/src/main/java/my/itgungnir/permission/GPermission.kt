@@ -12,6 +12,8 @@ import androidx.lifecycle.ViewModelStoreOwner
 
 class GPermission private constructor() {
 
+    private lateinit var context: FragmentActivity
+
     private lateinit var permissionUtil: GPermissionProxy
 
     private var showDialogAtPermissionRejection: Boolean = false
@@ -19,9 +21,6 @@ class GPermission private constructor() {
     private var deniedCallback: (() -> Unit)? = null
 
     companion object {
-
-        private lateinit var context: FragmentActivity
-
         fun with(component: ViewModelStoreOwner) = GPermission().apply {
             permissionUtil = GPermissionProxy.with(component)
             context = when (component) {
@@ -33,12 +32,6 @@ class GPermission private constructor() {
                     throw IllegalArgumentException("GPermission requested from wrong component.")
             }
         }
-
-        fun allGranted(vararg permissions: String) = permissions.all { granted(it) }
-
-        private fun granted(permission: String): Boolean =
-            ContextCompat.checkSelfPermission(context.applicationContext, permission) ==
-                    PackageManager.PERMISSION_GRANTED
     }
 
     /**
@@ -73,10 +66,16 @@ class GPermission private constructor() {
             }
     }
 
+    private fun granted(permission: String): Boolean =
+        ContextCompat.checkSelfPermission(context.applicationContext, permission) ==
+                PackageManager.PERMISSION_GRANTED
+
     private fun lackedOnes(vararg permissions: Pair<String, String>): List<String> {
         return permissions.filter { !granted(permission = it.first) }
             .map { it.second }
     }
+
+    fun allGranted(vararg permissions: String) = permissions.all { granted(it) }
 
     /**
      * Repeatedly pop the permission-request dialogs.
