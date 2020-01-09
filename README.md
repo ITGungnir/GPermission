@@ -8,7 +8,17 @@
 
 ![](./images/g_permission_instruction.png)
 
-## Import
+`GPermission`支持的功能和特性如下：
+* 使用`RxJava`实现，通过响应式的编程范式，优化代码结构；
+* 使用`Kotlin`编写，借助其函数式编程特性，减少不必要的代码量；
+* 通过链式编程的形式请求权限，简单易懂且可读性高；
+* 提供了一套内置的弹框样式，将最小学习成本降到最低，可无脑上手；
+* 具有高扩展性，用户可以自由控制是否弹框及弹窗样式，还可以将弹框逻辑替换为其他自定义的逻辑；
+* 支持一行代码判断指定权限是否都被允许。
+
+![GPermission效果图](./images/demo.gif)
+
+## 引入依赖
 第一步，在项目根目录下的`build.gradle`文件中引入`Jitpack`的库路径：
 ```groovy
 allprojects {
@@ -28,8 +38,8 @@ dependencies {
 }
 ```
 
-## Usage
-第一步，在`AndroidManifest.xml`文件中添加要请求的权限：
+## 使用注意事项
+1、需要在`AndroidManifest.xml`文件中添加要请求的权限：
 ```xml
 <manifest>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
@@ -39,7 +49,7 @@ dependencies {
 </manifest>
 ```
 
-**【重要！！！】** 第二步，设置将要进行权限请求的`Activity`的`configChanges`或`screenOrientation`属性：
+**【重要！！！】** 2、设置将要进行权限请求的`Activity`的`configChanges`或`screenOrientation`属性，或者固定屏幕的方向：
 ```xml
 <application
     android:name=".App"
@@ -51,55 +61,107 @@ dependencies {
     android:theme="@style/AppTheme"
     tools:ignore="AllowBackup, GoogleAppIndexingWarning">
     <activity
-        android:name=".SplashActivity"
+        android:name=".MainActivity"
         android:configChanges="keyboardHidden|orientation|screenSize">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
     </activity>
-    <activity
-        android:name=".MainActivity"
-        android:screenOrientation="portrait" />
 </application>
 ```
 
-第三步，在适当的地方请求权限：
+## 使用方法
+#### 1）请求权限，使用内置风格，拒绝时弹框
 ```kotlin
-// with()方法中的参数可以是 FragmentActivity或Fragment的子类
 GPermission.with(this)
-    // 设置当权限没有被赋予时，弹框提醒用户；如果不添加此方法，则不会弹框提醒用户
-    .showDialogAtPermissionRejection()
-    // 请求权限成功时的回调
-    .onGranted {
-        startActivity(Intent(this, MainActivity::class.java))
-        finish()
+    // 如果加了这样代码，则说明要使用GPermission内置的弹框样式来展示弹框（即系统的AlertDialog）
+    // 如果不加这行代码，则表示用户不想弹框，或想要自定义弹框样式和时机
+    .showDefaultDialogsAtPermissionRejection()
+    // 当所有权限都被赋予后会回调这个方法
+    .onGranted { toast("所有权限均已被赋予") }
+    // 当有些权限没有被赋予时会回调这个方法
+    .onDenied {
+        when (it) {
+            true -> toast("部分权限没有被赋予，但用户并没有勾选所有的'不再提醒'")
+            else -> toast("部分权限没有被赋予，且用户勾选了所有的'不再提醒'")
+        }
     }
-    // 请求权限失败时的回调
-    .onDenied { finish() }
-    // 开始请求权限
     .request(
         Manifest.permission.WRITE_EXTERNAL_STORAGE to "文件读写",
         Manifest.permission.READ_PHONE_STATE to "获取手机状态"
     )
 ```
+
+#### 2）请求权限，使用内置风格，拒绝时不弹框
 ```kotlin
 GPermission.with(this)
-    .onGranted {
-        Toast.makeText(this, "Camera permission granted", Toast.LENGTH_SHORT).show()
+    .onGranted { toast("请求到了相机权限") }
+    .onDenied {
+        when (it) {
+            true -> toast("用户禁止了相机权限，但没有勾选'不再提醒'")
+            else -> toast("用户禁止了相机权限，且勾选了'不再提醒'")
+        }
     }
     .request(
         Manifest.permission.CAMERA to "相机"
     )
 ```
 
-`GPermission`还提供了验证权限是否已获取的方法：
+#### 3）请求权限，使用自定义风格，拒绝时弹框
 ```kotlin
-tvResult.text = GPermission.with(this).allGranted(
-    Manifest.permission.WRITE_EXTERNAL_STORAGE,
-    Manifest.permission.READ_PHONE_STATE
-).toString()
+btn_request_custom.setOnClickListener {
+    customRequestPermissions()
+}
 ```
+```kotlin
+GPermission.with(this)
+    .onGranted { toast("所有权限均已被赋予") }
+    .onDenied {
+        if (it) {
+            CustomDialog.Builder()
+                .message("弹出这个对话框说明用户拒绝了部分权限，但并没有勾选所有的'不再提醒'")
+                // 当用户点击确定按钮时，重新请求权限
+                .onConfirm { customRequestPermissions() }
+                .onCancel { toast("用户禁止了相机权限，但没有勾选'不再提醒'") }
+                .create()
+                .show(supportFragmentManager, CustomDialog::class.java.simpleName)
+        } else {
+            CustomDialog.Builder()
+                .message("弹出这个对话框说明用户拒绝了部分权限，且勾选了所有的'不再提醒'")
+                // 当用户点击确定按钮时，跳转到系统的设置页面，手动设置权限
+                .onConfirm { openSystemSettings() }
+                .onCancel { toast("用户禁止了相机权限，且勾选了'不再提醒'") }
+                .create()
+                .show(supportFragmentManager, CustomDialog::class.java.simpleName)
+        }
+    }
+    .request(
+        Manifest.permission.WRITE_EXTERNAL_STORAGE to "文件读写",
+        Manifest.permission.READ_PHONE_STATE to "获取手机状态"
+    )
+```
+
+#### 4）判断指定权限是否全部被授予
+```kotlin
+val allPermissionsGranted = GPermission.with(this).allGranted(
+    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+    Manifest.permission.READ_PHONE_STATE,
+    Manifest.permission.CAMERA
+)
+when (allPermissionsGranted) {
+    true -> toast("所有权限均已被授予")
+    else -> toast("部分权限没有被赋予")
+}
+```
+
+## Change Log
+#### 0.8.0
+* 提高可扩展性，用户可以自定义弹框样式，或将弹框逻辑改为其他逻辑
+
+#### 0.7.0
+* 优化代码，解决特殊情况下发生的内存泄漏问题
+* 提高可扩展性，支持权限请求失败时弹框/不弹框
 
 ## License
 ```text

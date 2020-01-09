@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
@@ -18,7 +19,7 @@ class GPermission private constructor() {
 
     private var showDialogAtPermissionRejection: Boolean = false
     private var grantedCallback: (() -> Unit)? = null
-    private var deniedCallback: (() -> Unit)? = null
+    private var deniedCallback: ((Boolean) -> Unit)? = null
 
     companion object {
         fun with(component: ViewModelStoreOwner) = GPermission().apply {
@@ -38,7 +39,7 @@ class GPermission private constructor() {
      * If this method is invoked, dialogs will pop when not all permissions are granted by user.
      * Dialogs won't pop if this method isn't invoked.
      */
-    fun showDialogAtPermissionRejection() = apply {
+    fun showDefaultDialogsAtPermissionRejection() = apply {
         showDialogAtPermissionRejection = true
     }
 
@@ -46,20 +47,24 @@ class GPermission private constructor() {
         grantedCallback = block
     }
 
-    fun onDenied(block: () -> Unit) = apply {
+    /**
+     * lambda中的Boolean类型：是否还可以再此请求尚未赋予的权限
+     * 在不同场景下取值如下：
+     * - 用户拒绝了部分权限，但没有勾选"不再提醒"按钮，此时将返回true；
+     * - 用户拒绝了部分权限，且全部勾选了"不再提醒"按钮，此时将返回false；
+     * - 用户拒绝了部分权限，但只在部分权限上勾选了"不再提醒"按钮，还有一些权限虽然被拒绝了，但没有勾选"不再提醒"按钮，此时将返回true。
+     */
+    fun onDenied(block: (Boolean) -> Unit) = apply {
         deniedCallback = block
     }
 
     @SuppressLint("CheckResult")
     fun request(vararg permissions: Pair<String, String>) {
-        if (GPermissionDialog.isShowing) {
-            return
-        }
         permissionUtil.requestEachCombined(*(permissions.map { it.first }.toTypedArray()))
             .subscribe {
                 when {
                     it.granted -> grantedCallback?.invoke()
-                    !showDialogAtPermissionRejection -> deniedCallback?.invoke()
+                    !showDialogAtPermissionRejection -> deniedCallback?.invoke(it.shouldShowRequestPermissionRationale)
                     it.shouldShowRequestPermissionRationale -> requestRepeatedly(*permissions)
                     else -> requestManually(*permissions)
                 }
@@ -84,12 +89,13 @@ class GPermission private constructor() {
      * or checks all the "Don't show again" checkbox.
      */
     private fun requestRepeatedly(vararg permissions: Pair<String, String>) {
-        GPermissionDialog.Builder()
-            .message("请允许系统获取${lackedOnes(*permissions)}权限")
-            .onConfirm { request(*permissions) }
-            .onCancel { deniedCallback?.invoke() }
+        AlertDialog.Builder(context)
+            .setMessage("请允许系统获取${lackedOnes(*permissions)}权限")
+            .setCancelable(false)
+            .setPositiveButton("确定") { _, _ -> request(*permissions) }
+            .setNegativeButton("取消") { _, _ -> deniedCallback?.invoke(true) }
             .create()
-            .show(context.supportFragmentManager, GPermissionDialog::class.java.name)
+            .show()
     }
 
     /**
@@ -99,12 +105,13 @@ class GPermission private constructor() {
      * permissions for this App.
      */
     private fun requestManually(vararg permissions: Pair<String, String>) {
-        GPermissionDialog.Builder()
-            .message("由于系统无法获取${lackedOnes(*permissions)}权限，不能正常运行，请开启权限后再使用！")
-            .onConfirm { toSystemConfigPage() }
-            .onCancel { deniedCallback?.invoke() }
+        AlertDialog.Builder(context)
+            .setMessage("由于系统无法获取${lackedOnes(*permissions)}权限，不能正常运行，请前往设置页面手动允许")
+            .setCancelable(false)
+            .setPositiveButton("确定") { _, _ -> toSystemConfigPage() }
+            .setNegativeButton("取消") { _, _ -> deniedCallback?.invoke(false) }
             .create()
-            .show(context.supportFragmentManager, GPermissionDialog::class.java.name)
+            .show()
     }
 
     private fun toSystemConfigPage() {

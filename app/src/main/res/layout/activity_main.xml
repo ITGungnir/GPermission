@@ -1,26 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:ignore="HardcodedText">
 
-    <TextView
-        android:id="@+id/grantResult"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:layout_marginStart="30dp"
-        android:layout_marginEnd="30dp"
-        android:textColor="@android:color/black"
-        android:textSize="18sp" />
-
-    <Button
-        android:id="@+id/launchCamera"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:text="Launch the camera"
-        android:textAllCaps="false" />
+        android:orientation="vertical">
 
-</RelativeLayout>
+        <TextView
+            android:id="@+id/tv_permission_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/colorPrimary"
+            android:gravity="center"
+            android:paddingTop="15dp"
+            android:paddingBottom="15dp"
+            android:text="GPermission"
+            android:textColor="@android:color/white"
+            android:textSize="18sp" />
+
+        <Button
+            android:id="@+id/btn_request_default"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="请求权限，使用内置风格，拒绝时弹框"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/btn_request_default_no_pop"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="请求权限，使用内置风格，拒绝时不弹框"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/btn_request_custom"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="请求权限，使用自定义风格，拒绝时弹框"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/btn_all_granted"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="判断指定权限是否全部被授予"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/btn_system_settings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="跳转到应用设置页"
+            android:textAllCaps="false" />
+
+    </LinearLayout>
+</ScrollView>

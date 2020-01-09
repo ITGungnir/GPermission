@@ -1,4 +1,4 @@
-package my.itgungnir.permission
+package test.itgungnir.permission
 
 import android.app.Dialog
 import android.content.DialogInterface
@@ -9,9 +9,9 @@ import android.view.Window
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.FragmentManager
-import kotlinx.android.synthetic.main.dialog_g_permission.*
+import kotlinx.android.synthetic.main.dialog_custom.*
 
-class GPermissionDialog private constructor() : DialogFragment() {
+class CustomDialog private constructor() : DialogFragment() {
 
     private lateinit var param: SimpleDialogParam
 
@@ -24,14 +24,14 @@ class GPermissionDialog private constructor() : DialogFragment() {
         /**
          * Create new instance of this fragment.
          */
-        private fun newInstance(param: SimpleDialogParam) = GPermissionDialog().apply {
+        private fun newInstance(param: SimpleDialogParam) = CustomDialog().apply {
             this.param = param
         }
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         return AlertDialog.Builder(activity!!)
-            .setView(R.layout.dialog_g_permission)
+            .setView(R.layout.dialog_custom)
             .setCancelable(false)
             .create()
     }
