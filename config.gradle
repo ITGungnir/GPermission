@@ -13,7 +13,7 @@ ext {
     rxjava_version = '2.2.4'
     // Tools
     jitpack_version = '2.1'
-    leak_canary_version = '1.6.3'
+    leak_canary_version = '2.1'
 }
 
 static def addRepos(RepositoryHandler handler) {
